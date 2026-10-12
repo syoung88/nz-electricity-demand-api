@@ -1,10 +1,14 @@
 """Train the demand model, check how good it is, and save it.
 
 Run from the project folder:
-    uv run python -m nz_electricity_demand_api.train
+    uv run python -m nz_electricity_demand_api.train --note "What changed in this run"
+
+Each run appends a row of results to EXPERIMENTS.md.
 """
 
+import argparse
 import logging
+from datetime import date
 
 import joblib
 import pandas as pd
@@ -18,6 +22,7 @@ log = logging.getLogger(__name__)
 
 MODEL_DIR = PROJECT_ROOT / "models"
 MODEL_PATH = MODEL_DIR / "demand_model.joblib"
+EXPERIMENTS_PATH = PROJECT_ROOT / "EXPERIMENTS.md"
 
 
 def time_split(df: pd.DataFrame, test_from: str) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -31,13 +36,32 @@ def time_split(df: pd.DataFrame, test_from: str) -> tuple[pd.DataFrame, pd.DataF
     return df[df["trading_date"] < cutoff], df[df["trading_date"] >= cutoff]
 
 
-def report(name: str, y_true: pd.Series, y_pred) -> None:
+def report(name: str, y_true: pd.Series, y_pred) -> tuple[float, float]:
     mae = mean_absolute_error(y_true, y_pred)
     mape = mean_absolute_percentage_error(y_true, y_pred) * 100
     log.info("%-28s MAE = %4.0f MW   MAPE = %.1f%%", name, mae, mape)
+    return mae, mape
+
+
+def log_experiment(change: str, baseline_mae: float, model_mae: float, model_mape: float) -> None:
+    """Append one row to the results table in EXPERIMENTS.md.
+
+    The Notes column is left blank: fill in what you learned by hand.
+    """
+    row = (
+        f"| {date.today()} | {change} | {baseline_mae:.0f} | {model_mae:.0f} "
+        f"| {model_mape:.1f}% | |\n"
+    )
+    with EXPERIMENTS_PATH.open("a", encoding="utf-8") as f:
+        f.write(row)
+    log.info("Logged results to %s", EXPERIMENTS_PATH.name)
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Train the demand model.")
+    parser.add_argument("--note", required=True, help="What changed in this run")
+    args = parser.parse_args()
+
     df = load_dataset()
     log.info(
         "Loaded %s half-hours from %s to %s",
@@ -54,12 +78,13 @@ def main() -> None:
     keys = ["month", "day_of_week", "trading_period"]
     avg = train.groupby(keys)[TARGET].mean().rename("pred")
     baseline_pred = test.join(avg, on=keys)["pred"].fillna(train[TARGET].mean())
-    report("Baseline (historical avg)", test[TARGET], baseline_pred)
+    baseline_mae, _ = report("Baseline (historical avg)", test[TARGET], baseline_pred)
 
     # 2. The model
     model = HistGradientBoostingRegressor(random_state=42)
     model.fit(train[FEATURES], train[TARGET])
-    report("HistGradientBoosting", test[TARGET], model.predict(test[FEATURES]))
+    model_mae, model_mape = report("HistGradientBoosting", test[TARGET], model.predict(test[FEATURES]))
+    log_experiment(args.note, baseline_mae, model_mae, model_mape)
 
     # 3. Refit on ALL the data for the version we actually use, then save it.
     #    (The test score above is our honest estimate of how good it is.)
