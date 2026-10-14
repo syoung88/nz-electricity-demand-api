@@ -52,8 +52,6 @@ def test_daylight_saving_day_has_46_periods():
     result = national_demand(raw)
     assert len(result) == 46
     assert result["trading_period"].max() == 46
-
-    result = national_demand(raw)
     # highest trading_period is 46.
     # Bonus: add a 50-period day too and check each date separately.
     ...
@@ -61,13 +59,13 @@ def test_daylight_saving_day_has_46_periods():
 
 def test_calendar_features():
     # TODO (Sam): add_features only needs a trading_date column, e.g.
-    df = pd.DataFrame({"trading_date": ["2024-02-06", "2024-02-10", "2024-05-03"]})
+    df = pd.DataFrame({"trading_date": ["2024-02-05", "2024-02-10", "2024-06-03"]})
     # Pick a plain weekday, a Saturday and a public holiday (2024-02-06 is
     # Waitangi Day), then assert is_weekend and is_holiday are what you expect.
 
     result = add_features(df)
-    result["is_weekend"].tolist() == [0,1,0]
-    result["is_holiday"].tolist() == [0,0,1]
+    assert result["is_weekend"].tolist() == [0,1,0]
+    assert result["is_holiday"].tolist() == [0,0,1]
 
 
 
