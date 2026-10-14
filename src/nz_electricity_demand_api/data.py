@@ -9,6 +9,7 @@ training, predictions would silently be wrong.
 from pathlib import Path
 
 import pandas as pd
+import holidays
 
 # Project root = three levels up from this file (src/nz_electricity_demand_api/data.py)
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -22,7 +23,7 @@ TIWAI_PREFIX = "TWI"
 TRADING_PERIODS = [f"TP{i}" for i in range(1, 51)]
 
 # The columns the model is trained on. The API will need to build exactly these.
-FEATURES = ["trading_period", "day_of_week", "month", "day_of_year", "is_weekend"]
+FEATURES = ["trading_period", "day_of_week", "month", "day_of_year", "is_weekend", "is_holiday"]
 TARGET = "demand_mw"
 
 
@@ -79,6 +80,8 @@ def add_features(df: pd.DataFrame) -> pd.DataFrame:
     df["month"] = dates.dt.month
     df["day_of_year"] = dates.dt.dayofyear
     df["is_weekend"] = (df["day_of_week"] >= 5).astype(int)
+    nz_holidays = holidays.country_holidays("NZ", years=dates.dt.year.unique())
+    df["is_holiday"] = dates.dt.date.isin(nz_holidays).astype(int)
     return df
 
 
