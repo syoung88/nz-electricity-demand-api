@@ -18,7 +18,7 @@ GET /predict?trading_date=2026-01-15&trading_period=20
 
 ## How it works
 
-- **Data:** the Electricity Authority's monthly `Grid_export` files (January 2023 to December 2025). Each row is one connection point on one day, with the energy used in each half-hour "trading period". These are summed into one national demand series in MW.
+- **Data:** the Electricity Authority's monthly `Grid_export` files (January 2023 to December 2025), https://www.ea.govt.nz/data-and-insights/datasets/Datasets/Wholesale/Metered_data/Grid_export/. Each row is one connection point on one day, with the energy used in each half-hour "trading period". These are summed into one national demand series in MW.
 - **Tiwai Point is excluded.** The aluminium smelter is a single large customer that can be switched down at short notice, so its demand isn't driven by time of day or season.
 - **Features:** calendar information only (trading period, day of week, month, day of year, weekend, NZ public holiday), so the model can predict any future date without needing recent data.
 - **Model:** scikit-learn `HistGradientBoostingRegressor`, compared against a baseline that predicts the historical average for that month, weekday and half-hour.
@@ -76,7 +76,7 @@ src/nz_electricity_demand_api/
     train.py    train, evaluate and save the model
     api.py      the FastAPI app
 models/         the saved model the API loads
-scripts/        data exploration
+scripts/        data exploration and test on unseen 2026 data
 tests/          tests (run with `uv run pytest`)
 Dockerfile      how to build the API image
 ```
