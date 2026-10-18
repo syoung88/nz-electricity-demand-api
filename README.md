@@ -25,14 +25,14 @@ GET /predict?trading_date=2026-01-15&trading_period=20
 
 ## Results
 
-Trained on 2023 to 2024 and tested on 2025 (a time-based split, not a random one, so the model can't peek at neighbouring days). Lower is better. Full history in [EXPERIMENTS.md](EXPERIMENTS.md).
+Target: national half-hourly electricity demand (MW), excluding Tiwai Point. All splits are time-based, not random, so the model can't peek at neighbouring days. Lower is better.
 
-| Model | MAE (MW) | MAPE |
-|---|---|---|
-| Baseline (historical average) | 175 | n/a |
-| HistGradientBoosting with holiday feature | 161 | 4.2% |
+| Evaluation | Trained on | Baseline MAE | Model MAE | MAPE |
+|---|---|---|---|---|
+| Test year 2025 | 2023–2024 | 175 MW | 161 MW | 4.2% |
+| Unseen Jan–Sep 2026 (final model, scored once) | 2023–2025 | 194 MW | 183 MW | 4.8% |
 
-The saved model used by the API is refit on all of 2023 to 2025.
+The baseline predicts the historical average for the same month, weekday and half-hour. The saved model used by the API is the one trained on 2023–2025. On 2026 the model's error is lowest in summer and autumn (138–172 MW) and highest in winter (200–250 MW), which points to temperature as the main missing input. Full experiment log: [EXPERIMENTS.md](EXPERIMENTS.md).
 
 **Limitations:** there is no weather data yet, and only calendar features are used, so the model can't know about a cold snap or a heatwave.
 
